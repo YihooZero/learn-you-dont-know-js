@@ -311,7 +311,20 @@ console.log(window.c);  // 4
       }, j*1000 );
     })( i );
   }
+  // 解决方式三
+  for (var i=1; i<=5; i++) {
+    let j = i; // 是的， 闭包的块作用域！
+    setTimeout( function timer() {
+      console.log( j );
+    }, j*1000 );
+  }
+  // 解决方式四
+  for (let i=1; i<=5; i++) {
+    setTimeout( function timer() {
+      console.log( i );
+    }, i*1000 );
+  }
   ```
-
+  
   
 

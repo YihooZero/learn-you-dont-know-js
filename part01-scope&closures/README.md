@@ -56,13 +56,13 @@
 
 ```javascript
 var obj = {
-    a: 1,
-    b: 2
+  a: 1,
+  b: 2
 };
 with(obj) {
-    a = 2;
-    b = 3;
-    c = 4;
+  a = 2;
+  b = 3;
+  c = 4;
 }
 console.log(obj);       // { a: 2, b: 3 }
 console.log(window.c);  // 4
@@ -81,15 +81,15 @@ console.log(window.c);  // 4
   ```javascript
   // 代码片段1
   function foo() {
-      var a = 1;
-      console.log(a);
+    var a = 1;
+    console.log(a);
   }
   foo();
   
   // 代码片段2
   (function foo() {
-      var a = 1
-      console.log(a);
+    var a = 1
+    console.log(a);
   })()
   // 函数被当做函数表达式来处理
   ```
@@ -98,5 +98,147 @@ console.log(window.c);  // 4
 
   代码片段1中`foo`被绑定在所在作用域中，可以直接通过`foo()`来调用它。代码片段2中`foo`被绑定在函数表达式自身的函数中而不是所在作用域中。(代码片段2中的`foo`只能在函数体中被访问，外部作用域不行)
 
+
+#### charpter4：提升
+
+- ```javascript
+  // 代码片段1
+  a = 2;
+  var a;
+  console.log( a ); // 2
   
+  // 代码片段2
+  console.log( a ); // undefined
+  var a = 2;
+  ```
+
+  变量和函数在内的所有声明都会在任何代码被执行前首先被处理。当你看到 `var a = 2;` 时，可能会认为这是一个声明。但 JavaScript 实际上会将其看成两个 声明：`var a;` 和 `a = 2;`。第一个定义声明是在编译阶段进行的。第二个赋值声明会被留在 原地等待执行阶段
+
+  `代码片段1`会进行如下处理:
+
+  ```javascript
+  var a;
+  a = 2;
+  console.log( a );
+  ```
+
+  `代码片段2`会进行如下处理:
+
+  ```javascript
+  var a;
+  console.log( a );
+  a = 2;
+  ```
+
+  **函数声明提升：**
+
+  ```javascript
+  foo();
+  function foo() {
+    console.log( a ); // undefined
+    var a = 2;
+  }
+  ```
+
+  以上代码会做如下处理：
+
+  ```javascript
+  function foo() {
+    var a;
+    console.log( a ); // undefined
+    a = 2;
+  }
+  foo();
+  ```
+
+  **函数声明会被提升，但是函数表达式却不会被提升**
+
+  ```javascript
+  foo(); // 不是 ReferenceError, 而是 TypeError!
+  var foo = function bar() {
+    // ...
+  };
+  ```
+
+  > ReferenceError：引用错误，在尝试引用一个不存在当前作用域中的变量/常量时产生的错误
+  >
+  > TypeError ：会发生在值的类型不符合预期时，在对值的操作方法不存在或并未正确的定义时，TypeError 就会被返回
+
+  ```javascript
+  foo(); // TypeError
+  bar(); // ReferenceError
+  var foo = function bar() {
+    // ...
+  };
+  ```
+
+  以上代码片段提升后，实际会被理解为以下形式
+
+  ```javascript
+  var foo;
+  foo(); // TypeError
+  bar(); // ReferenceError
+  foo = function() {
+    var bar = ...self...
+    // ...
+  }
+  ```
+
+- 函数声明和变量声明都会被提升，但是函数会首先被提升，然后才是变量
+
+  ```javascript
+  foo(); // 1
+  var foo;
+  function foo() {
+    console.log( 1 );
+  }
+  foo = function() {
+    console.log( 2 );
+  };
+  ```
+
+  以上代码会输出1不是2！这个代码片段会被引擎理解为如下形式：
+
+  ```javascript
+  function foo() {
+    console.log( 1 );
+  }
+  foo(); // 1
+  foo = function() {
+    console.log( 2 );
+  };
+  ```
+
+  
+
+  尽管重复的 **var** 声明会被忽略掉，但**出现在后面的函数声明还是可以覆盖前面的**
+
+  ```javascript
+  foo(); // 3
+  function foo() {
+    console.log( 1 );
+  }
+  var foo = function() {
+    console.log( 2 );
+  };
+  function foo() {
+    console.log( 3 );
+  }
+  ```
+
+  
+
+  一个普通块内部的函数声明通常会被提升到所在作用域的顶部，这个过程不会像下面的代码暗示的那样可以被条件判断所控制：
+
+  ```javascript
+  foo(); // "b"
+  var a = true;
+  if (a) {
+    function foo() { console.log("a"); }
+  }
+  else {
+    function foo() { console.log("b"); }
+  }
+  // TODO:此代码运行报错!!!
+  ```
 

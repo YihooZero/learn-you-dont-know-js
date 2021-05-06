@@ -209,8 +209,6 @@ console.log(window.c);  // 4
   };
   ```
 
-  
-
   尽管重复的 **var** 声明会被忽略掉，但**出现在后面的函数声明还是可以覆盖前面的**
 
   ```javascript
@@ -226,12 +224,10 @@ console.log(window.c);  // 4
   }
   ```
 
-  
-
-  一个普通块内部的函数声明通常会被提升到所在作用域的顶部，这个过程不会像下面的代码暗示的那样可以被条件判断所控制：
+- 一个普通块内部的函数声明通常会被提升到所在作用域的顶部，这个过程不会像下面的代码暗示的那样可以被条件判断所控制：
 
   ```javascript
-  foo(); // "b"
+  foo(); // TypeError:foo is not a function
   var a = true;
   if (a) {
     function foo() { console.log("a"); }
@@ -239,6 +235,83 @@ console.log(window.c);  // 4
   else {
     function foo() { console.log("b"); }
   }
-  // TODO:此代码运行报错!!!
   ```
+
+  > 老版本中两个`foo`函数会被提升，第二个`foo`函数会覆盖第一个，因此`foo()`执行结果是`b`；
+  >
+  > 新版本中`if`块内仅提升函数声明，但未包含实际函数的隐藏值，因此`foo()`执行结果是`TypeError`
+
+  ```javascript
+  var a = true;
+  if (a) {
+    function foo() { console.log("a"); }
+  }
+  else {
+    function foo() { console.log("b"); }
+  }
+  foo() // a
+  // TODO:测试一下edge、ie浏览器中的实现
+  ```
+
+  > `JavaScript高级程序设计(第3版)`在第`176`页解释道：这在 `ECMAScript` 中属于无效语法， `JavaScript` 引擎会尝试修正错误，将其转换为合理的状态。大多数浏览器会返回第二个声明，忽略`condition`； `Firefox` 会在 `condition` 为 `true` 时返回第一个声明。（只针对作者当时写书时浏览器的实现）
+
+  **目前Chrome、FireFox浏览器已经按照我们的预期实现了，注意不要使用这种方式，在未来的JavaScript版本中有可能还会发生变化，应该尽可能避免在块内部声明函数**
+
+#### charpter5：作用域闭包
+
+- 当函数可以记住并访问所在的词法作用域，即使函数是在当前词法作用域之外执行，这时 就产生了闭包。
+  - 闭包使得函数可以继续访问定义是的词法作用域
+  - 无论通过何种手段将内部函数传递到所在的词法作用域以外，它都会持有对原始定义作用域的引用，无论在何处执行这个函数都会使用闭包
+
+- 循环和闭包
+
+  ```javascript
+  for (var i=1; i<=5; i++) {
+    setTimeout( function timer() {
+      console.log( i );
+    }, i*1000 );
+  }
+  // 这段代码在运行时会以每秒一次的频率输出五次6
+  ```
+
+  > 原因：尽管循环中的五个函数是在各个迭代中分别定义的， 但是它们都被封闭在一个共享的全局作用域中，因此实际上只有一个 `i`
+
+  ```javascript
+  function createFunctions(){
+    var result = new Array();
+    for (var i=0; i < 10; i++){
+      result[i] = function(){
+        return i;
+      };
+    }
+    return result;
+  }
+  // 表面上看，似乎每个函数都应该返自己的索引值，即位置 0 的函数返回 0，位置 1 的函数返回 1，以此类推。但实际上，每个函数都返回 10
+  ```
+
+  > 原因：因为每个函数的作用域链中都保存着 `createFunctions()` 函数的活动对象 ， 所以它们引用的都一 个变量 `i` 。 当 `createFunctions()` 函数返回后，变量 `i` 的值是 `10`，此时每个函数都引用着保存变量 `i` 的同一个变量对象，所以在每个函数内部 `i` 的值都是 `10`  
+
+  **解决方式**
+
+  ```javascript
+  // 解决方式一
+  for (var i=1; i<=5; i++) {
+    (function() {
+      var j = i;
+      setTimeout( function timer() {
+        console.log( j );
+      }, j*1000 );
+    })();
+  }
+  // 解决方式二
+  for (var i=1; i<=5; i++) {
+    (function(j) {
+      setTimeout( function timer() {
+        console.log( j );
+      }, j*1000 );
+    })( i );
+  }
+  ```
+
+  
 

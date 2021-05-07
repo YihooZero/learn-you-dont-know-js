@@ -326,9 +326,47 @@ console.log(window.c);  // 4
   }
   ```
   
-
 - 模块模式需要具备的两个条件
   1. 必须有外部的封闭函数， 该函数必须至少被调用一次（每次调用都会创建一个新的模块
      实例）。  
+     
   2. 封闭函数必须返回至少一个内部函数， 这样内部函数才能在私有作用域中形成闭包， 并
      且可以访问或者修改私有的状态。  
+     
+  3. [模块模式代码传送门](https://github.com/YihooZero/learn-you-dont-know-js/blob/main/part01-scope%26closures/1module.js)
+  
+  4. [现代的模块机制代码传送门](https://github.com/YihooZero/learn-you-dont-know-js/blob/main/part01-scope%26closures/2module.js)
+  
+  5. 未来的模块机制（目前运用的正是此模式，作者编写此书时此模式还没有盛行）
+  
+     ```javascript
+     	// 与4现代的模块机制作比较，更易阅读和理解
+     	// bar.js
+         function hello(who) {
+           return "Let me introduce: " + who;
+         }
+         export hello;
+     
+     	// foo.js
+     	// 仅从 "bar" 模块导入 hello()
+         import hello from "bar";
+         var hungry = "hippo";
+         function awesome() {
+           console.log(
+             hello( hungry ).toUpperCase()
+           );
+         }
+         export awesome;
+     
+     	// baz.js
+     	// 导入完整的 "foo" 和 "bar" 模块
+     	import foo from "foo";
+      	import bar from "bar";
+     	console.log(
+     	  bar.hello( "rhino" )
+     	);             // Let me introduce: rhino
+     	foo.awesome(); // LET ME INTRODUCE: HIPPO
+     ```
+  
+     
+

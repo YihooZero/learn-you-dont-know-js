@@ -338,33 +338,93 @@ console.log(window.c);  // 4
   5. 未来的模块机制（目前运用的正是此模式，作者编写此书时此模式还没有盛行）
   
      ```javascript
-     	// 与4现代的模块机制作比较，更易阅读和理解
-     	// bar.js
-         function hello(who) {
-           return "Let me introduce: " + who;
-         }
-         export hello;
+     // 与4现代的模块机制作比较，更易阅读和理解
+     // bar.js
+     function hello(who) {
+         return "Let me introduce: " + who;
+     }
+     export hello;
      
-     	// foo.js
-     	// 仅从 "bar" 模块导入 hello()
-         import hello from "bar";
-         var hungry = "hippo";
-         function awesome() {
-           console.log(
+     // foo.js
+     // 仅从 "bar" 模块导入 hello()
+     import hello from "bar";
+     var hungry = "hippo";
+     function awesome() {
+         console.log(
              hello( hungry ).toUpperCase()
-           );
-         }
-         export awesome;
+         );
+     }
+     export awesome;
      
-     	// baz.js
-     	// 导入完整的 "foo" 和 "bar" 模块
-     	import foo from "foo";
-      	import bar from "bar";
-     	console.log(
-     	  bar.hello( "rhino" )
-     	);             // Let me introduce: rhino
-     	foo.awesome(); // LET ME INTRODUCE: HIPPO
+     // baz.js
+     // 导入完整的 "foo" 和 "bar" 模块
+     import foo from "foo";
+     import bar from "bar";
+     console.log(
+         bar.hello( "rhino" )
+     );             // Let me introduce: rhino
+     foo.awesome(); // LET ME INTRODUCE: HIPPO
      ```
-  
-     
+
+#### 附录C：this词法
+
+```javascript
+var obj = {
+  id: "awesome",
+  cool: function coolFn() {
+    setTimeout(function timer() {
+      // this指向window;
+      console.log(this.id);
+    })
+  }
+};
+var id = "not awesome"
+obj.cool(); // not awesome
+// cool()函数丢失了同this之间的绑定
+
+// 办法一
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    var self = this;
+    if (self.count < 1) {
+      setTimeout( function timer(){
+        self.count++;
+        console.log( "awesome?" );
+      }, 100 );
+    }
+  }
+};
+obj.cool();
+
+// 办法二
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    if (this.count < 1) {
+      // 注意此处是箭头函数
+      setTimeout( () => {
+        this.count++;
+        console.log( "awesome?" );
+      }, 100 );
+    }
+  }
+};
+obj.cool();
+
+// 办法三
+var obj = {
+  count: 0,
+  cool: function coolFn() {
+    if (this.count < 1) {
+      setTimeout( function timer(){
+        this.count++; // this 是安全的
+        // 因为 bind(..)
+        console.log( "more awesome" );
+      }.bind( this ), 100 ); // look, bind()!
+    }
+  }
+};
+obj.cool();
+```
 

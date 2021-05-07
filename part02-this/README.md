@@ -351,3 +351,53 @@ baz.val; // p1p2
 
 就是这样。对于正常的函数调用来说，理解了这些知识你就可以明白 this 的绑定原理了。 不过……凡事总有例外。
 
+## 5.绑定例外
+
+- ### 被忽略的this
+
+  如果你把 `null` 或者 `undefined` 作为 `this` 的绑定对象传入 `call`、 `apply` 或者 `bind`， 这些值
+  在调用时会被忽略， 实际应用的是默认绑定规则  
+
+  ```javascript
+  function foo() {
+    console.log( this.a );
+  }
+  var a = 2;
+  foo.call( null ); // 2
+  ```
+
+  有两种情况下会传入`null`
+
+  1. 使用 `apply(..)` 来“展开” 一个数组， 并当作参数传入一个函数  
+  2. `bind(..)` 可以对参数进行柯里化（预先设置一些参数）  
+
+  ```javascript
+  function foo(a,b) {
+    console.log( "a:" + a + ", b:" + b );
+  } 
+  // 把数组“展开” 成参数
+  foo.apply( null, [2, 3] ); // a:2, b:3
+  // 使用 bind(..) 进行柯里化
+  var bar = foo.bind( null, 2 );
+  bar( 3 ); // a:2, b:3
+  ```
+
+#### 更安全的this
+
+总是使用 `null` 来忽略 `this` 绑定可能产生一些副作用。 如果某个函数确实使用了`this`（比如第三方库中的一个函数）， 那默认绑定规则会把 `this` 绑定到全局对象（在浏览器中这个对象是 `window`）， 这将导致不可预计的后果（比如修改全局对象）  
+
+如果我们在忽略 `this` 绑定时总是传入一个空对象， 那就什么都不用担心了， 因为任何对于 `this` 的使用都会被限制在这个空对象中， 不会对全局对象产生任何影响。  
+
+```javascript
+function foo(a,b) {
+console.log( "a:" + a + ", b:" + b );
+}
+// 我们的 DMZ 空对象
+var ø = Object.create( null );
+// 把数组展开成参数
+foo.apply( ø, [2, 3] ); // a:2, b:3
+// 使用 bind(..) 进行柯里化
+var bar = foo.bind( ø, 2 );
+bar( 3 ); // a:2, b:3
+```
+

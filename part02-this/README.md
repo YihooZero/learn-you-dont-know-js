@@ -401,3 +401,69 @@ var bar = foo.bind( ø, 2 );
 bar( 3 ); // a:2, b:3
 ```
 
+- ### 间接引用
+
+  创建一个函数的“间接引用”，调用这个函数会应用默认绑定规则（间接引用最容易在赋值时发生）
+
+  ```javascript
+  function foo() {
+    console.log( this.a );
+  }
+  var a = 2;
+  var o = { a: 3, foo: foo };
+  var p = { a: 4 };
+  o.foo(); // 3
+  (p.foo = o.foo)(); // 2
+  ```
+
+  赋值表达式 `p.foo = o.foo` 的返回值是目标函数的引用，因此调用位置是 `foo()` 而不是 `p.foo()` 或者 `o.foo()`。根据我们之前说过的，这里会应用默认绑定。
+
+  **注意：** 对于默认绑定来说，决定 `this` 绑定对象的并不是调用位置是否处于严格模式，而是函数体是否处于严格模式。如果函数体处于严格模式，`this` 会被绑定到 `undefined`，否则 `this` 会被绑定到全局对象。
+
+- ### 软绑定
+
+  硬绑定这种方式可以把 `this` 强制绑定到指定的对象（除了使用 `new` 时），防止函数调用应用默认绑定规则。也会有相应的问题：硬绑定会大大降低函数的灵活性，使用硬绑定之后就无法使用隐式绑定或者显式绑定来修改 `this`。
+
+  软绑定可以给默认绑定指定一个全局对象和 `undefined` 以外的值，实现和硬绑定相同效果的同时保留隐式绑定或者显式绑定修改 `this` 的能力。软绑定的实现方式如下：
+
+  ```javascript
+  if (!Function.prototype.softBind) {
+  	Function.prototype.softBind = function(obj) {
+  		var fn = this;
+  		// 捕获所有 curried 参数
+  		var curried = [].slice.call( arguments, 1 );
+  		var bound = function() {
+  			return fn.apply(
+  				(!this || this === (window || global)) ?
+  					obj : this,
+  				curried.concat.apply( curried, arguments )
+  			);
+  		};
+  		bound.prototype = Object.create( fn.prototype );
+          return bound;
+  	};
+  }
+  ```
+
+  除了软绑定之外，`softBind(..)` 的其他原理和 `ES5` 内置的 `bind(..)` 类似。它会对指定的函数进行封装，首先检查调用时的 `this`，如果 `this` 绑定到全局对象或者 `undefined`，那就把指定的默认对象 `obj` 绑定到 `this`，否则不会修改 `this`。此外，这段代码还支持可选的柯里化
+
+  `softBind` 实现软绑定功能代码如下：
+
+  ```javascript
+  function foo() {
+    console.log("name: " + this.name);
+  }
+  var obj = { name: "obj" },
+  obj2 = { name: "obj2" },
+  obj3 = { name: "obj3" };
+  var fooOBJ = foo.softBind( obj );
+  fooOBJ(); // name: obj
+  obj2.foo = foo.softBind(obj);
+  obj2.foo(); // name: obj2 <---- 看！！！
+  fooOBJ.call( obj3 ); // name: obj3 <---- 看！
+  setTimeout( obj2.foo, 10 );
+  // name: obj <---- 应用了软绑定
+  ```
+
+  可以看到，软绑定版本的 `foo()` 可以手动将 `this` 绑定到 `obj2` 或者 `obj3` 上，但如果应用默 认绑定，则会将 `this` 绑定到 `obj`。
+

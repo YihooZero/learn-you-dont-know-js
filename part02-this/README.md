@@ -467,3 +467,27 @@ bar( 3 ); // a:2, b:3
 
   可以看到，软绑定版本的 `foo()` 可以手动将 `this` 绑定到 `obj2` 或者 `obj3` 上，但如果应用默 认绑定，则会将 `this` 绑定到 `obj`。
 
+## 6.`this`词法(`ES6`箭头函数)
+
+箭头函数不使用 `this` 的四种标准规则，而是根据外层（函数或者全局）作用域来决定 `this`。
+
+**箭头函数的绑定无法被修改，`new` 也不 行！**
+
+```javascript
+function foo() {
+  // 返回一个箭头函数
+  return (a) => {
+  //this 继承自 foo()
+    console.log( this.a );
+  };
+}
+var obj1 = {
+  a:2
+};
+var obj2 = {
+  a:3
+};
+var bar = foo.call( obj1 );
+bar.call( obj2 ); // 2, 不是 3 ！
+```
+

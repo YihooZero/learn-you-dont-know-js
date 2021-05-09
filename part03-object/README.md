@@ -332,17 +332,17 @@ myObject.hasOwnProperty( "b" ); // false
   ```javascript
   var myObject = { };
   Object.defineProperty(
-  	myObject,
-  	"a",
-  	// 让 a 像普通属性一样可以枚举
-  	{ enumerable: true, value: 2 }
+    myObject,
+    "a",
+    // 让 a 像普通属性一样可以枚举
+    { enumerable: true, value: 2 }
   );
   
   Object.defineProperty(
-  	myObject,
-  	"b",
-  	// 让 b 不可枚举
-  	{ enumerable: false, value: 3 }
+    myObject,
+    "b",
+    // 让 b 不可枚举
+    { enumerable: false, value: 3 }
   );
   
   myObject.b; // 3
@@ -351,7 +351,7 @@ myObject.hasOwnProperty( "b" ); // false
   
   // .......
   for (var k in myObject) {
-  	console.log( k, myObject[k] );
+    console.log( k, myObject[k] );
   }
   // "a" 2
   ```
@@ -363,17 +363,17 @@ myObject.hasOwnProperty( "b" ); // false
   ```javascript
   var myObject = { };
   Object.defineProperty(
-  	myObject,
-  	"a",
-  	// 让 a 像普通属性一样可以枚举
-  	{ enumerable: true, value: 2 }
+    myObject,
+    "a",
+    // 让 a 像普通属性一样可以枚举
+    { enumerable: true, value: 2 }
   );
   
   Object.defineProperty(
-  	myObject,
-  	"b",
-  	// 让 b 不可枚举
-  	{ enumerable: false, value: 3 }
+    myObject,
+    "b",
+    // 让 b 不可枚举
+    { enumerable: false, value: 3 }
   );
   
   myObject.propertyIsEnumerable( "a" );   // true
@@ -385,7 +385,7 @@ myObject.hasOwnProperty( "b" ); // false
 
   | 方法                             | 区别                                                         |
   | -------------------------------- | ------------------------------------------------------------ |
-  | `propertyIsEnumerable(..)`       | 检查给定的属性名是否直接存在于对象中（而不是在原型链 上）并且满足 `enumerable:true`。 |
+  | `propertyIsEnumerable(..)`       | 检查给定的属性名是否直接存在于对象中（而不是在原型链 上）并且满足 `enumerable:true` |
   | `Object.keys(..)`                | 返回一个数组，包含所有可枚举属性                             |
   | `Object.getOwnPropertyNames(..)` | 返回一个数组，包含所有属性，无论它们是否可枚举               |
   | `in`                             | 检查属性是否在对象及其 `[[Prototype]]` 原型链中              |
@@ -399,27 +399,27 @@ myObject.hasOwnProperty( "b" ); // false
 
 ```javascript
 var myObject = {
-	a: 2,
-	b: 3
+  a: 2,
+  b: 3
 };
 
 Object.defineProperty( myObject, Symbol.iterator, {
-	enumerable: false,
-	writable: false,
-	configurable: true,
-	value: function() {
-		var o = this;
-		var idx = 0;
-		var ks = Object.keys( o );
-		return {
-			next: function() {
-				return {
-					value: o[ks[idx++]],
-					done: (idx > ks.length)
-				};
-			}
-		};
-	}
+  enumerable: false,
+  writable: false,
+  configurable: true,
+  value: function() {
+    var o = this;
+    var idx = 0;
+    var ks = Object.keys( o );
+    return {
+      next: function() {
+        return {
+          value: o[ks[idx++]],
+          done: (idx > ks.length)
+        };
+      }
+    };
+  }
 } );
 
 // 手动遍历 myObject
@@ -430,7 +430,7 @@ it.next(); // { value:undefined, done:true }
 
 // 用 for..of 遍历 myObject
 for (var v of myObject) {
-console.log( v );
+  console.log( v );
 }
 // 2
 // 3

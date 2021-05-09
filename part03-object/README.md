@@ -388,7 +388,7 @@ myObject.hasOwnProperty( "b" ); // false
   | `propertyIsEnumerable(..)`       | 检查给定的属性名是否直接存在于对象中（而不是在原型链 上）并且满足 `enumerable:true` |
   | `Object.keys(..)`                | 返回一个数组，包含所有可枚举属性                             |
   | `Object.getOwnPropertyNames(..)` | 返回一个数组，包含所有属性，无论它们是否可枚举               |
-  | `in`                             | 检查属性是否在对象及其 `[[Prototype]]` 原型链中              |
+  | `in`                             | 检查属性是否在对象及其 `[[Prototype]]` 原型链中并且满足 `enumerable:true` |
   | `hasOwnProperty(..)`             | 只会检查属性是否在对象中，不会检查 `[[Prototype]]` 原型链链  |
 
 ### 遍历

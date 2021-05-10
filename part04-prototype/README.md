@@ -67,3 +67,38 @@ myObject.a; // 2
 
   如果想让 `anotherObject.a` 的值增加，唯一的办法是 `anotherObject.a++`。
 
+#### 2."类"
+
+- ##### "类"函数
+
+  ```javascript
+  function Foo() {
+    // ...
+  }
+  
+  var a = new Foo();
+  
+  Object.getPrototypeOf( a ) === Foo.prototype; // true
+  ```
+
+  调用 `new Foo()` 时会创建 `a`对象，其中的一步就是给 `a` 一个内部的 `[[Prototype]]` 链接，关联到 `Foo.prototype` 指向的那个对象。
+
+  得到了两个对象，它们之间互相关联，并没有初始化一个类，实际上我们并没有从“类”中复制任何行为到一个对象中，只是让两个对象互相关联。
+
+- ##### "构造函数"
+
+  ```javascript
+  function Foo() {
+    // ...
+  }
+  
+  Foo.prototype.constructor === Foo; // true
+  
+  var a = new Foo();
+  a.constructor === Foo;             // true
+  ```
+
+  ###### 1.构造函数还是调用
+
+  
+

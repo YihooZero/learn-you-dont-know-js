@@ -98,7 +98,81 @@ myObject.a; // 2
   a.constructor === Foo;             // true
   ```
 
-  ###### 1.构造函数还是调用
+  ###### 构造函数还是调用
 
+  当在普通的函数调用前面加上 `new` 关键字之后，就会把这个函数调用变成一个“构造函数调用”。实际上，`new` 会劫持所有普通函数并用构造对象的形式来调用它。
   
+  函数不是构造函数，但是当且仅当使用 `new` 时，函数调用会变成“构造函数调用”。
+  
+- ##### 技术
 
+  ###### 回顾"构造函数"
+
+  `a.constructor === Foo` 并不真意味着 `a` 有一个指向 `Foo` 的 `.constructor` 属性。实际上，`.constructor` 引用同样被委托给了 `Foo.prototype`，而 `Foo.prototype.constructor` 默认指向 `Foo`。
+
+  `a1.constructor` 是一个非常不可靠并且不安全的引用。通常来说要尽量避免使用这些引用。
+
+#### 3.（原型）继承
+
+```javascript
+function Foo(name) {
+  this.name = name;
+}
+
+Foo.prototype.myName = function() {
+  return this.name;
+};
+
+function Bar(name,label) {
+  Foo.call( this, name );
+  this.label = label;
+}
+
+// 我们创建了一个新的 Bar.prototype 对象并关联到 Foo.prototype
+Bar.prototype = Object.create( Foo.prototype );
+
+// 注意！现在没有 Bar.prototype.constructor 了
+// 如果你需要这个属性的话可能需要手动修复一下它
+Bar.prototype.myLabel = function() {
+  return this.label;
+};
+
+var a = new Bar( "a", "obj a" );
+
+a.myName();   // "a"
+a.myLabel();  // "obj a"
+```
+
+原型继承图如下：
+
+![原型继承](https://github.com/YihooZero/learn-you-dont-know-js/blob/main/imgs/part04-prototype1.png)
+
+这段代码的核心部分就是语句 `Bar.prototype = Object.create( Foo.prototype )`。调用 `Object.create(..)` 会凭空创建一个“新”对象并把新对象内部的 `[[Prototype]]` 关联到你指定的对象（本例中是 `Foo.prototype`）。
+
+下面这两种方式都存在一些问题：
+
+```javascript
+// 和你想要的机制不一样！
+Bar.prototype = Foo.prototype;
+
+// 基本上满足你的需求，但是可能会产生一些副作用 :(
+Bar.prototype = new Foo();
+```
+
+`Bar.prototype = Foo.prototype` 并不会创建一个关联到 `Bar.prototype` 的新对象，它只是让 `Bar.prototype` 直接引用 `Foo.prototype` 对象。因此当你执行类似 `Bar.prototype. myLabel = ...` 的赋值语句时会直接修改 `Foo.prototype` 对象本身。
+
+`Bar.prototype = new Foo()` 的确会创建一个关联到 `Bar.prototype` 的新对象。但是它使用了 `Foo(..)` 的“构造函数调用”，如果函数 `Foo` 有一些副作用（比如写日志、修改状态、注册到其他对象、给 `this` 添加数据属性，等等）的话，就会影响到 `Bar()` 的“后代”，后果不堪设想。
+
+要创建一个合适的关联对象，我们必须使用 `Object.create(..)` 而不是使用具有副作用的 `Foo(..)`。这样做唯一的缺点就是需要创建一个新对象然后把旧对象抛弃掉，不能直接修改已有的默认对象。**（这就是为什么`Bar.prototype.constructor === Bar` 为 `false` 的原因）**
+
+在 `ES6` 之前， 我们只能通过设置 `.__proto__` 属性来实现，但是这个方法并不是标准并且无法兼容所有浏览器。`ES6` 添加了辅助函数 `Object.setPrototypeOf(..)`，可以用标准并且可靠的方法来修改关联。（`Object.setPrototypeOf(..)` 弥补了 `Object.create(..)` 的不足，直接修改现有的 `Bar.prototype` ，且 `Bar.prototype.constructor === true` 为 `true`）
+
+```javascript
+// ES6 之前需要抛弃默认的 Bar.prototype
+Bar.ptototype = Object.create( Foo.prototype );
+
+// ES6 开始可以直接修改现有的 Bar.prototype
+Object.setPrototypeOf( Bar.prototype, Foo.prototype );
+```
+
+##### 检查"类"关系

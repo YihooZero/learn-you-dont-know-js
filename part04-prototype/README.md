@@ -176,3 +176,22 @@ Object.setPrototypeOf( Bar.prototype, Foo.prototype );
 ```
 
 ##### 检查"类"关系
+
+荒谬的使用 `instanceof` 来判断两个对象的关系：
+
+```javascript
+// 用来判断 o1 是否关联到（委托）o2 的辅助函数
+function isRelatedTo(o1, o2) {
+  function F(){}
+  F.prototype = o2;
+  return o1 instanceof F;
+}
+
+var a = {};
+var b = Object.create( a );
+
+isRelatedTo( b, a ); // true
+```
+
+在 `isRelatedTo(..)` 内部我们声明了一个一次性函数 `F`，把它的 `.prototype` 重新赋值并指向对象 `o2`，然后判断 `o1` 是否是 `F` 的一个“实例”。显而易见，`o1` 实际上并没有继承 `F` 也不是由 `F` 构造，所以这种方法非常愚蠢并且容易造成误解。
+

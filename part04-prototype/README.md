@@ -177,9 +177,19 @@ Object.setPrototypeOf( Bar.prototype, Foo.prototype );
 
 ##### 检查"类"关系
 
-荒谬的使用 `instanceof` 来判断两个对象的关系：
+**方法一：**荒谬的使用 `instanceof` 来判断两个对象的关系：
 
 ```javascript
+function Foo() {
+  // ...
+}
+
+Foo.prototype.blah = ...;
+
+var a = new Foo();
+
+a instanceof Foo; // true
+
 // 用来判断 o1 是否关联到（委托）o2 的辅助函数
 function isRelatedTo(o1, o2) {
   function F(){}
@@ -194,4 +204,90 @@ isRelatedTo( b, a ); // true
 ```
 
 在 `isRelatedTo(..)` 内部我们声明了一个一次性函数 `F`，把它的 `.prototype` 重新赋值并指向对象 `o2`，然后判断 `o1` 是否是 `F` 的一个“实例”。显而易见，`o1` 实际上并没有继承 `F` 也不是由 `F` 构造，所以这种方法非常愚蠢并且容易造成误解。
+
+**方法二：**`isPrototypeOf(..)` 来判断 `[[Prototype]]` 反射的方法：
+
+```javascript
+Foo.prototype.isPrototypeOf( a ); // true
+```
+
+ a 的整条 `[[Prototype]]` 链中是否出现过 `Foo.prototype`
+
+这种方法并不需要间接引用函数`（Foo）`，它的 `.prototype` 属性会被自动访问。只需要两个对象就可以判断它们之间的关系：
+
+```javascript
+// 非常简单：b 是否出现在 c 的 [[Prototype]] 链中?
+b.isPrototypeOf( c );
+```
+
+这个方法并不需要使用函数（“类”），它直接使用 `b` 和 `c` 之间的对象引用来判断它们的关系。换句话说，语言内置的 `isPrototypeOf(..)` 函数就是方法一中的 `isRelatedTo(..)` 函数。
+
+**方法三：**直接获取一个对象的 `[[Prototype]]` 链。
+
+在 `ES5` 中，标准的方法是：
+
+```javascript
+Object.getPrototypeOf( a );
+
+// 验证
+Object.getPrototypeOf( a ) === Foo.prototype; // true
+```
+
+绝大多数**（不是所有！）**浏览器也支持一种非标准的方法来访问内部 `[[Prototype]]` 属性：
+
+```javascript
+a.__proto__ === Foo.prototype; // true
+```
+
+`.__proto__` 看起来很像一个属性，但是实际上它更像一个 `getter/setter`，`.__proto__` 的实现大致上是这样的：
+
+```javascript
+Object.defineProperty( Object.prototype, "__proto__", {
+  get: function() {
+    return Object.getPrototypeOf( this );
+  },
+  set: function(o) {
+    // ES6 中的 setPrototypeOf(..)
+    Object.setPrototypeOf( this, o );
+    return o;
+  }
+} );
+
+```
+
+#### 4.对象关联
+
+`[[Prototype]]` 机制就是存在于对象中的一个内部链接，它会引用其他对象。
+
+作用：如果在对象上没有找到需要的属性或者方法引用，引擎就会继续在 `[[Prototype]]` 关联的对象上进行查找。同理，如果在后者中也没有找到需要的引用就会继续查找它的 `[[Prototype]]`，以此类推。这一系列对象的链接被称为**“原型链”**。
+
+##### 1.创建关联
+
+```javascript
+var foo = {
+  something: function() {
+    console.log( "Tell me something good..." );
+  }
+};
+
+var bar = Object.create( foo );
+
+bar.something(); // Tell me something good...
+```
+
+`Object.create(..)` 会创建一个新对象`（bar）`并把它关联到我们指定的对象`（foo）`，这样我们就可以充分发挥 `[[Prototype]]` 机制的威力（委托）并且避免不必要的麻烦（比如使用 `new` 的构造函数调用会生成 `.prototype` 和 `.constructor` 引用）。
+
+`Object.create(null)` 会创建一个拥有空（ 或者说 `null`）`[[Prototype]]` 链接的对象，这个对象无法进行委托。由于这个对象没有原型链，所以 `instanceof` 操作符无法进行判断，因此总是会返回 `false`。 这些特殊的空 `[[Prototype]]` 对象通常被称作“字典”，**它们完全不会受到原型链的干扰，因此非常适合用来存储数据**。
+
+**`Object.create()`的`polyfill`代码：**
+
+```javascript
+if (!Object.create) {
+  Object.create = function(o) {
+    function F(){}
+    F.prototype = o;
+    return new F();
+  };
+}
+```
 

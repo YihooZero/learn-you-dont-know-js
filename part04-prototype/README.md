@@ -291,3 +291,67 @@ if (!Object.create) {
 }
 ```
 
+```javascript
+var anotherObject = {
+  a:2
+};
+
+var myObject = Object.create( anotherObject, {
+  b: {
+    enumerable: false,
+    writable: true,
+    configurable: false,
+    value: 3
+  },
+  c: {
+    enumerable: true,
+    writable: false,
+    configurable: false,
+    value: 4
+  }
+});
+
+myObject.hasOwnProperty( "a" ); // false
+myObject.hasOwnProperty( "b" ); // true
+myObject.hasOwnProperty( "c" ); // true
+
+myObject.a; // 2
+myObject.b; // 3
+myObject.c; // 4
+```
+
+`Object.create(..)` 的第二个参数指定了**需要添加到新对象中的属性名以及这些属性的属性描述符**。
+
+##### 2.关联关系是备用
+
+```javascript
+var anotherObject = {
+  cool: function() {
+    console.log( "cool!" );
+  }
+};
+
+var myObject = Object.create( anotherObject );
+
+myObject.cool(); // "cool!"
+```
+
+当你设计软件时，假设要调用 `myObject.cool()`，如果 `myObject` 中不存在 `cool()` 时这条语句也可以正常工作的话，那你的 `API` 设计就会变得很“神奇”，对于未来维护你软件的开发者来说这可能不太好理解。
+
+```javascript
+var anotherObject = {
+  cool: function() {
+    console.log( "cool!" );
+  }
+};
+
+var myObject = Object.create( anotherObject );
+
+myObject.doCool = function() {
+  this.cool(); // 内部委托！
+};
+
+myObject.doCool(); // "cool!"
+```
+
+这里我们调用的 `myObject.doCool()` 是实际存在于 `myObject` 中的，这可以让我们的 `API` 设计更加清晰（不那么“神奇”）。从内部来说，我们的实现遵循的是委托设计模式，通过 `[[Prototype]]` 委托到 `anotherObject.cool()`。

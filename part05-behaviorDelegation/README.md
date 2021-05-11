@@ -58,3 +58,80 @@ XYZ.outputTaskDetails = function() {
 你无法在两个或两个以上互相（双向）委托的对象之间创建循环委托。如果你把 `B` 关联到 `A` 然后试着把 `A` 关联到 `B`，就会出错。
 
 之所以要禁止互相委托，是因为引擎的开发者们发现在设置时检查（并禁止！）一次无限循环引用要更加高效，否则每次从对象中查找属性时都需要进行检查。
+
+###### 调试
+
+```javascript
+function Foo() {}
+
+var a1 = new Foo();
+
+a1;
+```
+
+`Chrome` 开发者工具的控制台 `a1` 会输出 `Foo {}`；`Firefox` 控制台 `a1` 会得到 `Object {}`。
+
+`Chrome` 实际上想说的是“{} 是一个空对象，由名为 `Foo` 的函数构造”。`Firefox` 想说的是“{} 是一个空对象，由 `Object` 构造”。
+
+###### 比较思维模型
+
+“原型”面向对象风格：
+
+```javascript
+function Foo(who) {
+  this.me = who;
+}
+
+Foo.prototype.identify = function() {
+  return "I am " + this.me;
+};
+
+function Bar(who) {
+  Foo.call( this, who );
+}
+
+Bar.prototype = Object.create( Foo.prototype );
+
+Bar.prototype.speak = function() {
+  alert( "Hello, " + this.identify() + "." );
+};
+
+var b1 = new Bar( "b1" );
+var b2 = new Bar( "b2" );
+
+b1.speak();
+b2.speak();
+```
+
+子类 `Bar` 继承了父类 `Foo`，然后生成了 `b1` 和 `b2` 两个实例。`b1` 委托了 `Bar.prototype`，`Bar.prototype` 委托了 `Foo.prototype`。
+
+对象关联风格：
+
+```javascript
+Foo = {
+  init: function(who) {
+    this.me = who;
+  },   
+  identify: function() {
+    return "I am " + this.me;
+  }
+};
+
+Bar = Object.create( Foo );
+
+Bar.speak = function() {
+  alert( "Hello, " + this.identify() + "." );
+};
+
+var b1 = Object.create( Bar );
+b1.init( "b1" );
+var b2 = Object.create( Bar );
+b2.init( "b2" );
+
+b1.speak();
+b2.speak();
+```
+
+这段代码中我们同样利用 `[[Prototype]]` 把 `b1` 委托给 `Bar` 并把 `Bar` 委托给 `Foo`，和上一段代码一模一样。我们仍然实现了三个对象之间的关联。
+
+但是非常重要的一点是，这段代码简洁了许多，我们只是把对象关联起来，并不需要那些既复杂又令人困惑的模仿类的行为（构造函数、原型以及 `new`）。

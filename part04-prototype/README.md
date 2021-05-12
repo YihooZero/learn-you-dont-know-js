@@ -177,7 +177,7 @@ Object.setPrototypeOf( Bar.prototype, Foo.prototype );
 
 ##### 检查"类"关系
 
-**方法一：**荒谬的使用 `instanceof` 来判断两个对象的关系：
+**方法一：** 荒谬的使用 `instanceof` 来判断两个对象的关系：
 
 ```javascript
 function Foo() {
@@ -205,7 +205,7 @@ isRelatedTo( b, a ); // true
 
 在 `isRelatedTo(..)` 内部我们声明了一个一次性函数 `F`，把它的 `.prototype` 重新赋值并指向对象 `o2`，然后判断 `o1` 是否是 `F` 的一个“实例”。显而易见，`o1` 实际上并没有继承 `F` 也不是由 `F` 构造，所以这种方法非常愚蠢并且容易造成误解。
 
-**方法二：**`isPrototypeOf(..)` 来判断 `[[Prototype]]` 反射的方法：
+**方法二：** `isPrototypeOf(..)` 来判断 `[[Prototype]]` 反射的方法：
 
 ```javascript
 Foo.prototype.isPrototypeOf( a ); // true
@@ -222,7 +222,7 @@ b.isPrototypeOf( c );
 
 这个方法并不需要使用函数（“类”），它直接使用 `b` 和 `c` 之间的对象引用来判断它们的关系。换句话说，语言内置的 `isPrototypeOf(..)` 函数就是方法一中的 `isRelatedTo(..)` 函数。
 
-**方法三：**直接获取一个对象的 `[[Prototype]]` 链。
+**方法三：** 直接获取一个对象的 `[[Prototype]]` 链。
 
 在 `ES5` 中，标准的方法是：
 

@@ -135,3 +135,158 @@ b2.speak();
 这段代码中我们同样利用 `[[Prototype]]` 把 `b1` 委托给 `Bar` 并把 `Bar` 委托给 `Foo`，和上一段代码一模一样。我们仍然实现了三个对象之间的关联。
 
 但是非常重要的一点是，这段代码简洁了许多，我们只是把对象关联起来，并不需要那些既复杂又令人困惑的模仿类的行为（构造函数、原型以及 `new`）。
+
+#### 类与对象
+
+##### 1.控件"类"
+
+在不使用任何“类”辅助库或者语法的情况下，使用纯 `JavaScript` 实现类风格的代码：
+
+```javascript
+// 父类
+function Widget(width,height) {
+  this.width = width || 50;
+  this.height = height || 50;
+  this.$elem = null;
+}
+
+Widget.prototype.render = function($where){
+  if (this.$elem) {
+    this.$elem.css( {
+      width: this.width + "px",
+      height: this.height + "px"
+    } ).appendTo( $where );
+  }
+};
+
+// 子类
+function Button(width,height,label) {
+  // 调用“super”构造函数
+  Widget.call( this, width, height );
+  this.label = label || "Default";
+  this.$elem = $( "<button>" ).text( this.label );
+}
+
+// 让 Button“继承”Widget
+Button.prototype = Object.create( Widget.prototype );
+
+// 重写 render(..)
+Button.prototype.render = function($where) {
+  //“super”调用
+  Widget.prototype.render.call( this, $where );
+  this.$elem.click( this.onClick.bind( this ) );
+};
+
+Button.prototype.onClick = function(evt) {
+  console.log( "Button '" + this.label + "' clicked!" );
+};
+
+$( document ).ready( function(){
+  var $body = $( document.body );
+  var btn1 = new Button( 125, 30, "Hello" );
+  var btn2 = new Button( 150, 40, "World" );
+  btn1.render( $body );
+  btn2.render( $body );
+} );
+```
+
+###### `ES6`的class语法糖
+
+```javascript
+class Widget {
+  constructor(width,height) {
+    this.width = width || 50;
+    this.height = height || 50;
+    this.$elem = null;
+  }
+  render($where){
+    if (this.$elem) {
+      this.$elem.css( {
+        width: this.width + "px",
+        height: this.height + "px"
+      } ).appendTo( $where );
+    }
+  }
+}
+
+class Button extends Widget {
+  constructor(width,height,label) {
+    super( width, height );
+    this.label = label || "Default";
+    this.$elem = $( "<button>" ).text( this.label );
+  }
+  render($where) {
+    super( $where );
+    this.$elem.click( this.onClick.bind( this ) );
+  }
+  onClick(evt) {
+    console.log( "Button '" + this.label + "' clicked!" );
+  }
+}
+
+$( document ).ready( function(){
+  var $body = $( document.body );
+  var btn1 = new Button( 125, 30, "Hello" );
+  var btn2 = new Button( 150, 40, "World" );
+  btn1.render( $body );
+  btn2.render( $body );
+} );
+```
+
+##### 2.委托控件对象
+
+对象关联风格委托来更简单地实现 `Widget/Button`：
+
+```javascript
+var Widget = {
+  init: function(width,height){
+    this.width = width || 50;
+    this.height = height || 50;
+    this.$elem = null;
+  },
+  insert: function($where){
+    if (this.$elem) {
+      this.$elem.css( {
+        width: this.width + "px",
+        height: this.height + "px"
+      } ).appendTo( $where );
+    }
+  }
+};
+
+var Button = Object.create( Widget );
+
+Button.setup = function(width,height,label){
+  // 委托调用
+  this.init( width, height );
+  this.label = label || "Default";
+  this.$elem = $( "<button>" ).text( this.label );
+};
+
+Button.build = function($where) {
+  // 委托调用
+  this.insert( $where );
+  this.$elem.click( this.onClick.bind( this ) );
+};
+
+Button.onClick = function(evt) {
+  console.log( "Button '" + this.label + "' clicked!" );
+};
+
+$( document ).ready( function(){
+  var $body = $( document.body );
+
+  var btn1 = Object.create( Button );
+  btn1.setup( 125, 30, "Hello" );
+
+  var btn2 = Object.create( Button );
+  btn2.setup( 150, 40, "World" );
+
+  btn1.build( $body );
+  btn2.build( $body );
+} );
+```
+
+使用对象关联风格来编写代码时不需要把 `Widget` 和 `Button` 当作父类和子类。相反， `Widget` 只是一个对象，包含一组通用的函数，任何类型的控件都可以委托，`Button` 同样只是一个对。（当然，它会通过委托关联到 `Widget` ！）
+
+从设计模式的角度来说，我们并没有像类一样在两个对象中都定义相同的方法名 `render(..)`，相反，我们定义了两个更具描述性的方法名（`insert(..)` 和 `build(..)`）。同理，初始化方法分别叫作 `init(..)` 和 `setup(..)`。

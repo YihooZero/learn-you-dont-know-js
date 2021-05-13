@@ -89,3 +89,44 @@ fn(1, 2, 3)
 typeof [1,2,3] === "object"; // true
 ```
 
+### 值和类型
+
+`JavaScript` 中的变量是没有类型的，只有值才有。变量可以随时持有任何类型的值。
+
+#### 1.`undefined` 和 `undeclared`
+
+`undefined`：已在作用域中声明但还没有赋值的变量
+
+`undeclared`：还没有在作用域中声明过的变量
+
+```javascript
+var a;
+
+a; // undefined
+b; // ReferenceError: b is not defined
+
+typeof a; // "undefined"
+typeof b; // "undefined"
+```
+
+对于 `undeclared`变量，`typeof` 照样返回 "`undefined`"。这是因为 `typeof` 有一个特殊的安全防范机制。
+
+#### 2.`typeof Undeclared`
+
+安全防范机制对在浏览器中运行的 `JavaScript` 代码来说很有帮助的。
+
+例子：在程序中使用全局变量 `DEBUG` 作为“调试模式”的开关。在输出调试信息到控制台之前，我们会检查 `DEBUG` 变量是否已被声明。顶层的全局变量声明 `var DEBUG = true` 只在 `debug.js` 文件中才有，而该文件只在开发和测试时才被加载到浏览器，在生产环 境中不予加载。
+
+问题是如何在程序中检查全局变量 `DEBUG` 才不会出现 `ReferenceError` 错误。这时 `typeof` 的安全防范机制就成了我们的好帮手：
+
+```javascript
+// 这样会抛出错误
+if (DEBUG) {
+ console.log( "Debugging is starting" );
+}
+// 这样是安全的
+if (typeof DEBUG !== "undefined") {
+ console.log( "Debugging is starting" );
+}
+```
+

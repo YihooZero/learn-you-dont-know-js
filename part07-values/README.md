@@ -387,7 +387,252 @@ a === NaN; // false
   
   window.isNaN( a ); // true
   window.isNaN( b ); // true——晕！
+  // 很明显 "foo" 不是一个数字，但是它也不是 NaN
+  ```
+  
+- `ES6` 工具函数 `Number.isNaN(..)`。`ES6` 之前的浏览器的 `polyfill`：
+
+  ```javascript
+  if (!Number.isNaN) {
+    Number.isNaN = function(n) {
+      return (
+        typeof n === "number" &&
+        window.isNaN( n )
+      );
+    };
+  }
+  
+  var a = 2 / "foo";
+  var b = "foo";
+  
+  Number.isNaN( a ); // true
+  Number.isNaN( b ); // false——好！
   ```
 
-  
+- 更简单的方法一种方法，利用 `NaN` 不等于自身这个特点。**`NaN` 是 `JavaScript` 中唯 一一个不等于自身的值**。
 
+  ```javascript
+  if (!Number.isNaN) {
+    Number.isNaN = function(n) {
+      return n !== n;
+    };
+  }
+  ```
+
+##### 2.无穷数
+
+`JavaScript` 使用有限数字表示法（**`IEEE 754` 浮点数**），和纯粹的数学运算不同，`JavaScript` 的运算结果有可能溢出，此时结果为 `Infinity` 或者 `-Infinity`。
+
+```javascript
+var a = 1 / 0; // Infinity
+var b = -1 / 0; // -Infinity
+```
+
+`Infinity`：`Number.POSITIVE_INfINITY`；
+
+`-Infinity`：`Number.NEGATIVE_ INfINITY`；
+
+计算结果一旦溢出为无穷数（`infinity`）就无法再得到有穷数。换句话说，就是你可以从有穷走向无穷，但无法从无穷回到有穷。
+
+> `Infinity`/ `Infinity` 是一个未定义操作，结果为 `NaN`。
+>
+> 有穷正数除以 `Infinity`，结果是 `0`。
+>
+> 有穷负数除以 `Infinity`，结果时 `-0`。
+
+##### 3.零值
+
+`JavaScript` 有一个常规的 `0`（也叫作 `+0`）和一个 `-0`。
+
+```javascript
+var a = 0 / -3; // -0
+var b = 0 * -3; // -0
+```
+
+**加法和减法运算不会得到负零。**
+
+根据规范，对负零进行字符串化会返回 `"0"`：
+
+```javascript
+var a = 0 / -3;
+
+// 至少在某些浏览器的控制台中显示是正确的
+a;                   // -0
+
+// 但是规范定义的返回结果是这样！
+a.toString();        // "0"
+a + "";              // "0"
+String( a );         // "0"
+
+// JSON也如此，很奇怪
+JSON.stringify( a ); // "0"
+```
+
+如果反过来将其从字符串转换为数字，得到的结果是准确的：
+
+```javascript
++"-0";              // -0
+Number( "-0" );     // -0
+JSON.parse( "-0" ); // -0
+```
+
+> 注意：`JSON.stringify(-0)` 返回 `"0"`，而 `JSON.parse("-0")` 返回 `-0`。
+
+负零的比较操作：
+
+```javascript
+var a = 0;
+var b = 0 / -3;
+
+a == b;   // true
+-0 == 0;  // true
+
+a === b;  // true
+-0 === 0; // true
+
+0 > -0;   // false
+a > b;    // false
+```
+
+如何区分 `-0` 和 `0` ？
+
+```javascript
+function isNegZero(n) {
+  n = Number( n );
+  return (n === 0) && (1 / n === -Infinity);
+}
+
+isNegZero( -0 );     // true
+isNegZero( 0 / -3 ); // true
+isNegZero( 0 );      // false
+```
+
+#### 4.特殊等式
+
+`NaN` 和 `-0` 在相等比较时的表现有些特别。由于 `NaN` 和自身不相等，所以必须使用 `ES6` 中的 `Number.isNaN(..)`（或者 `polyfill`）。而 `-0` 等于 `0`（对于 `===` 也是如此），因此我们必须使用 `isNegZero(..)` 这样的工具函数。
+
+`ES6` 中新加入了一个工具方法 `Object.is(..)` 来判断两个值是否绝对相等，可以用来处理 上述所有的特殊情况：
+
+```javascript
+var a = 2 / "foo";
+var b = -3 * 0;
+
+Object.is( a, NaN ); // true
+Object.is( b, -0 );  // true
+Object.is( b, 0 );   // false
+```
+
+`ES6` 之前的版本，`Object.is(..)` 有一个简单的 `polyfill`：
+
+```javascript
+if (!Object.is) {
+  Object.is = function(v1, v2) {
+    // 判断是否是-0
+    if (v1 === 0 && v2 === 0) {
+      return 1 / v1 === 1 / v2;
+    }
+    // 判断是否是NaN
+    if (v1 !== v1) {
+      return v2 !== v2;
+    }
+    // 其他情况
+    return v1 === v2;
+  };
+}
+```
+
+### 值和引用
+
+```javascript
+var a = 2;
+var b = a; // b是a的值的一个复本
+b++;
+a; // 2
+b; // 3
+
+var c = [1,2,3];
+var d = c; // d是[1,2,3]的一个引用
+d.push( 4 );
+c; // [1,2,3,4]
+d; // [1,2,3,4]
+```
+
+简单值（即标量基本类型值）总是通过 **值复制** 的方式来赋值 / 传递，包括 `null`、`undefined`、字符串、数字、布尔和 `ES6` 中的 `symbol`。
+
+复合值 ——对象（包括数组和封装对象）和函数，则总是通过 **引用复制** 的方式来赋值 / 传递。
+
+引用指向的是值本身而非变量，所以一个引用无法更改另一个引用的指向。
+
+```javascript
+var a = [1,2,3];
+var b = a;
+a; // [1,2,3]
+b; // [1,2,3]
+
+// 然后
+b = [4,5,6];
+a; // [1,2,3]
+b; // [4,5,6]
+```
+
+`b=[4,5,6]` 并不影响 `a` 指向值 `[1,2,3]`，除非 `b` 不是指向数组的引用，而是指向 `a` 的指针， 但在 `JavaScript` 中不存在这种情况！
+
+函数参数经常会让人感到困惑：
+
+```javascript
+function foo(x) {
+ x.push( 4 );
+ x; // [1,2,3,4]
+    
+ // 然后
+ x = [4,5,6];
+ x.push( 7 );
+ x; // [4,5,6,7]
+}
+
+var a = [1,2,3];
+foo( a );
+
+a; // 是[1,2,3,4]，不是[4,5,6,7]
+```
+
+向函数传递 `a` 的时候，实际是将引用 `a` 的一个复本赋值给 `x`，而 `a` 仍然指向 `[1,2,3]`。 在函数中我们可以通过引用 `x` 来更改数组的值（`push(4)` 之后变为 `[1,2,3,4]`）。但 `x = [4,5,6]` 并不影响 `a` 的指向，所以 `a` 仍然指向 `[1,2,3,4]`。
+
+不能通过引用 `x` 来更改引用 `a` 的指向，只能更改 `a` 和 `x` 共同指向的值。
+
+如果要将 `a` 的值变为 `[4,5,6,7]`，必须更改 `x` 指向的数组，而不是为 `x` 赋值一个新的数组。
+
+```javascript
+function foo(x) {
+  x.push( 4 );
+  x; // [1,2,3,4]
+    
+  // 然后
+  x.length = 0; // 清空数组
+  x.push( 4, 5, 6, 7 );
+  x; // [4,5,6,7]
+}
+
+var a = [1,2,3];
+foo( a );
+
+a;  // 是[4,5,6,7]，不是[1,2,3,4]
+```
+
+> `x.length = 0` 和 `x.push(4,5,6,7)` 并没有创建一个新的数组，而是更改了当前的数组。于是 `a` 指向的值变成了 `[4,5,6,7]`。
+
+**NOTE:** 将基本类型值封装到对应的数字封装对象中，虽然传递的是指向数字对象的引用复本，但并不能通过它来更改其中的基本类型值：
+
+```javascript
+function foo(x) {
+  x = x + 1;
+  x; // 3
+}
+var a = 2;
+var b = new Number( a ); // Object(a)也一样
+
+foo( b );
+console.log( b ); // 是2，不是3
+```
+
+原因是 **基本类型值是不可更改的**（字符串和布尔也是如此）。如果一个数字对象的标量基本类型值是 `2`，那么该值就不能更改，除非创建一个包含新值的数字对象。 `x = x + 1` 中，`x` 中的标量基本类型值 `2` 从数字对象中拆封（或者提取）出来后，`x` 就神不知鬼不觉地从引用变成了数字对象，它的值为 `2 + 1` 等于 `3`。然而函数外的 `b` 仍然指向原来那个值为 `2` 的数字对象。

@@ -157,3 +157,172 @@ Promise.resolve( foo( 42 ) )
 
 > 对于用 `Promise.resolve(..)` 为所有函数的返回值（不管是不是 `thenable`） 都封装一层。另一个好处是，这样做很容易把函数调用规范为定义良好的异步任务。如果 `foo(42)` 有时会返回一个立即值，有时会返回 `Promise`，那么 `Promise.resolve( foo(42) )` 就能够保证总会返回一个 `Promise` 结果。
 
+**异步的 map(..) 工具**
+
+```javascript
+if (!Promise.map) {
+  Promise.map = function(vals,cb) {
+    // 一个等待所有map的promise的新promise
+    return Promise.all(
+      // 注：一般数组map(..)把值数组转换为 promise数组
+      vals.map( function(val){
+        // 用val异步map之后决议的新promise替换val
+        return new Promise( function(resolve){
+          cb( val, resolve );
+        } );
+      } )
+    );
+  };
+}
+
+var p1 = Promise.resolve( 21 );
+var p2 = Promise.resolve( 42 );
+var p3 = Promise.reject( "Oops" );
+// 把列表中的值加倍，即使是在Promise中
+Promise.map( [p1,p2,p3], function(pr,done){
+  // 保证这一条本身是一个Promise
+  Promise.resolve( pr )
+  .then(
+    // 提取值作为v
+    function(v){
+      // map完成的v到新值
+      done( v * 2 );
+    },
+    // 或者map到promise拒绝消息
+    done
+ ); 
+} )
+.then( function(vals){
+  console.log( vals ); // [42,84,"Oops"]
+} );
+```
+
+**`Promise.all([ .. ])` 和 `Promise.race([ .. ])`**
+
+```javascript
+var p1 = Promise.resolve( 42 );
+var p2 = Promise.resolve( "Hello World" );
+var p3 = Promise.reject( "Oops" );
+
+Promise.race( [p1,p2,p3] )
+.then( function(msg){
+  console.log( msg ); // 42
+} );
+
+Promise.all( [p1,p2,p3] )
+.catch( function(err){
+  console.error( err ); // "Oops"
+} );
+
+Promise.all( [p1,p2] )
+.then( function(msgs){
+  console.log( msgs ); // [42,"Hello World"]
+} ); 
+```
+
+> 若向 `Promise.all([ .. ])` 传入空数组，它会立即完成，但 `Promise. race([ .. ])` 会挂住，且永远不会决议。
+
+**单一值**
+
+1.分裂值
+
+```javascript
+function getY(x) {
+  return new Promise( function(resolve,reject){
+    setTimeout( function(){
+      resolve( (3 * x) - 1 );
+    }, 100 );
+  } );
+}
+
+function foo(bar,baz) {
+  var x = bar * baz;
+  return getY( x )
+  .then( function(y){
+    // 把两个值封装到容器中
+    return [x,y];
+  } );
+}
+
+foo( 10, 20 )
+.then( function(msgs){
+  var x = msgs[0];
+  var y = msgs[1];
+  console.log( x, y ); // 200 599
+} ); 
+```
+
+```javascript
+function foo(bar,baz) {
+  var x = bar * baz;
+  // 返回两个promise
+  return [
+    Promise.resolve( x ),
+    getY( x )
+  ];
+}
+
+Promise.all(
+  foo( 10, 20 )
+)
+.then( function(msgs){
+  var x = msgs[0];
+  var y = msgs[1];
+  console.log( x, y );
+} );
+```
+
+2.展开 / 传递参数
+
+在辅助工具中采用函数技巧：
+
+```javascript
+function spread(fn) {
+  return Function.apply.bind( fn, null );
+}
+Promise.all(
+  foo( 10, 20 )
+)
+.then(
+  spread( function(x,y){
+    console.log( x, y ); // 200 599
+  } )
+)
+```
+
+将函数内联起来使用，以避免额外的辅助工具：
+
+```javascript
+Promise.all(
+  foo( 10, 20 )
+)
+.then( Function.apply.bind(
+  function(x,y){
+    console.log( x, y ); // 200 599
+  }, 
+  null
+) );
+```
+
+更好的答案，`ES6` 解构：
+
+```javascript
+Promise.all(
+  foo( 10, 20 )
+)
+.then( function(msgs){
+  var [x,y] = msgs;
+  console.log( x, y ); // 200 599
+} ); 
+```
+
+最好的是 `ES6` 数组参数解构形式：
+
+```javascript
+Promise.all(
+  foo( 10, 20 )
+)
+.then( function([x,y]){
+  console.log( x, y ); // 200 599
+} ); 
+```

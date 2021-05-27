@@ -117,5 +117,87 @@ s2(); // b = a * 2;  a: 12, b: 24, fLast: 2, tLast: undefined
 console.log(a, b); // 12, 24
 ```
 
-实际执行结果:  `console.log(a, b)` 打印为 `12, 18`
+实际执行结果:  `console.log(a, b)` 打印为 `12, 18`。**需要特别注意 `b = a * (yield 2)`；执行第三个 `s2()` 方法时，程序运行到 `*` 这里的时候停止了，此时`a`已经获取到值了，另外需要注意的是虽然 `s1` 和 `s2` 交替运行，但是 `last` 仍然保持着各自迭代器的值** ，具体代码如下：
+
+```javascript
+function* bar() {
+  b--;
+  yield;
+  a = (yield 8) + b;
+  console.log("这个时候的a", a); //9
+  b = console.log("a到底是几==",a) * (yield 2);
+  //因为程序运行到*这里的时候停止了，所以此时a已经获取到值了
+  //假如写成下面这样
+  //b = (yield 2)*a;结果就不一样了，同样函数在*这里停止，重新运行之后a才获取，此时就变成了12,24
+}
+```
+
+生成器 `yield` 暂停的特性意味着我们不仅能够从异步函数调用得到看似同步的返回值，还可以同步捕获来自这些异步函数调用的错误！
+
+```javascript
+function foo(x,y) {
+  ajax(
+    "http://some.url.1/?x=" + x + "&y=" + y,
+    function(err,data){
+      if (err) {
+        // 向*main()抛出一个错误
+        it.throw( err );
+      }
+      else {
+        // 用收到的data恢复*main()
+        it.next( data );
+      }
+    }
+  );
+}
+
+function *main() {
+  try {
+    var text = yield foo( 11, 31 ); 
+    console.log( text );
+  }
+  catch (err) {
+    console.error( err );
+  }
+}
+
+var it = main();
+
+// 这里启动！
+it.next();
+```
+
+获得 `Promise` 和生成器最大效用的最自然的方法就是 `yield` 出来一个 `Promise`，然后通过这个 `Promise` 来控制生成器的迭代器。
+
+```javascript
+function foo(x,y) {
+  return request(
+    "http://some.url.1/?x=" + x + "&y=" + y
+  );
+}
+
+function *main() {
+  try {
+    var text = yield foo( 11, 31 );
+    console.log( text );
+  }
+  catch (err) {
+    console.error( err );
+  }
+}
+
+var it = main();
+
+var p = it.next().value;
+
+// 等待promise p决议
+p.then(
+  function(text){
+    it.next( text );
+  },
+  function(err){
+    it.throw( err );
+  }
+); 
+```
 

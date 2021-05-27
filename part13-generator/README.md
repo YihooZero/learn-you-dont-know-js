@@ -54,3 +54,68 @@ res.value; // 42
 
 如果你的生成器中没有 `return` 的话——在生成器中和在普通函数中一样，`return` 当然不 是必需的——总有一个假定的 / 隐式的 `return`;（也就是 `return undefined`;），它会在默认情况下回答最后的 `it.next(7)` 调用提出的问题。
 
+**多个迭代器交替执行**
+
+```javascript
+var a = 1;
+var b = 2;
+
+function *foo() {
+  a++;
+  yield;
+  b = b * a;
+  a = (yield b) + 3;
+}
+
+function *bar() {
+  b--;
+  yield;
+  a = (yield 8) + b;
+  b = a * (yield 2);
+}
+
+function step(gen) {
+  var it = gen();
+  var last;
+  return function() {
+    // 不管yield出来的是什么，下一次都把它原样传回去！
+    last = it.next( last ).value;
+  };
+}
+
+var s1 = step( foo );
+var s2 = step( bar );
+s2(); // b--;
+s2(); // yield 8
+s1(); // a++;
+s2(); // a = 8 + b;
+      // yield 2
+s1(); // b = b * a;
+      // yield b
+s1(); // a = b + 3;
+s2(); // b = a * 2;
+
+console.log(a, b);
+```
+
+```javascript
+/**
+ * 自己在脑海中执行结果如下
+ * fLast 表示执行 last = it.next( last ).value 前last的值
+ * tLast 表示执行 last = it.next( last ).value 后last的值
+ */
+s2(); // b--;        a: 1, b: 1, fLast: undefined, tLast: undefined
+s2(); // yield 8     a: 1, b: 1, fLast: undefined, tLast: 8
+s1(); // a++;        a: 2, b: 1, fLast: undefined, tLast: undefined
+s2(); // a = 8 + b;  a: 9, b: 1, fLast: 8, tLast: 2
+      // yield 2
+s1(); // b = b * a;  a: 9, b: 9, fLast: undefined, tLast: 9
+      // yield b
+s1(); // a = b + 3;  a: 12, b: 9, fLast: 9, tLast: undefined
+s2(); // b = a * 2;  a: 12, b: 24, fLast: 2, tLast: undefined
+
+console.log(a, b); // 12, 24
+```
+
+实际执行结果:  `console.log(a, b)` 打印为 `12, 18`
+

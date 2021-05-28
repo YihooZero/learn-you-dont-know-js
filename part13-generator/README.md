@@ -201,3 +201,107 @@ p.then(
 ); 
 ```
 
+**消息委托**
+
+`yield` 委托不只用于迭代器控制工作，也用于双向消息传递工作：
+
+```javascript
+function *foo() {
+  console.log( "inside *foo():", yield "B" );
+  console.log( "inside *foo():", yield "C" );
+  return "D";
+}
+
+function *bar() {
+  console.log( "inside *bar():", yield "A" );
+  // yield委托！
+  console.log( "inside *bar():", yield *foo() );
+  console.log( "inside *bar():", yield "E" );
+  return "F";
+}
+
+var it = bar();
+
+console.log( "outside:", it.next().value );
+// outside: A
+
+console.log( "outside:", it.next( 1 ).value );
+// inside *bar(): 1
+// outside: B
+
+console.log( "outside:", it.next( 2 ).value );
+// inside *foo(): 2
+// outside: C
+
+console.log( "outside:", it.next( 3 ).value );
+// inside *foo(): 3
+// inside *bar(): D
+// outside: E
+
+console.log( "outside:", it.next( 4 ).value );
+// inside *bar(): 4
+// outside: F
+```
+
+**异常也被委托！**
+
+和 `yield` 委托透明地双向传递消息的方式一样，错误和异常也是双向传递的：
+
+```javascript
+function *foo() {
+  try {
+    yield "B";
+  }
+  catch (err) {
+    console.log( "error caught inside *foo():", err );
+  }
+  yield "C";
+  throw "D";
+}
+
+function *bar() {
+  yield "A";
+  try {
+    yield *foo();
+  }
+  catch (err) {
+    console.log( "error caught inside *bar():", err );
+  }
+  yield "E";
+  yield *baz();
+  // 注：不会到达这里！
+  yield "G";
+}
+
+function *baz() {
+  throw "F";
+}
+
+var it = bar();
+
+console.log( "outside:", it.next().value );
+// outside: A
+
+console.log( "outside:", it.next( 1 ).value );
+// outside: B
+
+console.log( "outside:", it.throw( 2 ).value );
+// error caught inside *foo(): 2
+// outside: C
+
+console.log( "outside:", it.next( 3 ).value );
+// error caught inside *bar(): D
+// outside: E
+
+try {
+  console.log( "outside:", it.next( 4 ).value );
+}
+catch (err) {
+  console.log( "error caught outside:", err );
+}
+// error caught outside: F
+```
+
+生成器内部的代码是以自然的同步 / 顺序方式表达任务的一系列步骤。其技巧在于，我们把可能的异步隐藏在了关键字 `yield` 的后面， 把异步移动到控制生成器的迭代器的代码部分。
+
+生成器为异步代码保持了顺序、同步、阻塞的代码模式，这使得大脑可以更自然地追踪代码，解决了基于回调的异步的两个关键缺陷之一。

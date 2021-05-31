@@ -126,17 +126,17 @@ config.options.enable = (config.options.enable !== undefined) ?
 config.options = config.options || {};
 config.log = config.log || {};
 
-{
+({
   options: {
-    remove: config.options.remove = default.options.remove,
-    enable: config.options.enable = default.options.enable,
-    instance: config.options.instance = default.options.instance
+    remove: config.options.remove = defaults.options.remove,
+    enable: config.options.enable = defaults.options.enable,
+    instance: config.options.instance = defaults.options.instance
   } = {},
   log: {
-    warn: config.log.warn = default.log.warn,
-    error: config.log.error = default.log.error
+    warn: config.log.warn = defaults.log.warn,
+    error: config.log.error = defaults.log.error
   } = {}
-} = config;
+} = config);
 ```
 
 另外一种实现方式：
@@ -162,5 +162,81 @@ config.log = config.log || {};
     log: { warn, error }
   };
 }
+```
+
+**模板字面量**
+
+```javascript
+function tag(strings, ...values) {
+  return strings.reduce( function(s,v,idx){
+    return s + (idx > 0 ? values[idx-1] : "") + v;
+  }, "" );
+}
+
+var desc = "awesome";
+
+var text = tag`Everything is ${desc}!`;
+
+console.log( text ); // Everything is awesome!
+```
+
+高阶用法:
+
+```javascript
+function dollabillsyall(strings, ...values) {
+  return strings.reduce(function (s, v, idx) {
+    if (idx > 0) {
+      if (typeof values[idx - 1] == "number") {
+        // 看，这里也使用了插入字符串字面量！
+        s += `$${values[idx - 1].toFixed(2)}`;
+      } else {
+        s += values[idx - 1];
+      }
+    }
+    return s + v;
+  }, "");
+}
+
+var amt1 = 11.99,
+    amt2 = amt1 * 1.08,
+    name = "Kyle";
+
+var text = dollabillsyall
+  `Thanks for your purchase, ${name}! Your
+  product cost was ${amt1}, which with tax
+  comes out to ${amt2}.`
+
+console.log(text);
+// Thanks for your purchase, Kyle! Your
+// product cost was $11.99, which with tax
+// comes out to $12.95.
+```
+
+通过 `.raw` 属性访问原始字符串值：
+
+```javascript
+function showraw(strings, ...values) {
+  console.log( strings );
+  console.log( strings.raw );
+} 
+
+showraw`Hello\nWorld`;
+// [ "Hello
+// World" ]
+// [ "Hello\nWorld" ]
+```
+
+`ES6` 提供了一个内建函数可以用作字符串字面量标签：`String.raw(..)`。它就是传出 `strings` 的原始版本：
+
+```javascript
+console.log( `Hello\nWorld` );
+// Hello
+// World
+
+console.log( String.raw`Hello\nWorld` );
+// Hello\nWorld 
+
+String.raw`Hello\nWorld`.length;
+// 12
 ```
 

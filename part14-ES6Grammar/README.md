@@ -37,9 +37,29 @@ foo(); // ReferenceError
 >
 >  但是，`z + 1` 中的 `z` 发现 `z` 是一个此刻还没初始化的参数变量，所以它永远不会试图从外层作用域寻找 `z`。
 
-有一个不为人知但是很有用的技巧可以使用：**`Function. prototype` 本身就是一个没有操作的空函数**。
+有一个不为人知但是很有用的技巧可以使用：**`Function.prototype` 本身就是一个没有操作的空函数**。
 
 ### 解构
+
+解构一般是指 **将值从数组`Array`或属性从对象`Object`提取到不同的变量中** ，当解构其他类型时，也是先将其他类型值转换为`Array`或者`Object`
+
+```javascript
+const [a, b, c] = 'hello'
+// a = 'h', b = 'e', c = 'l'
+  
+const {toString: d} = true
+console.log(d === Boolean.prototype.toString) // true
+```
+
+**默认值赋值**
+
+```javascript
+var {a = 1, b = 2} = {}
+// a = 1, b = 2
+
+var {a = 1, b = 2} = {a: 'hello'}
+// a = 'hello', b = 2
+```
 
 **解构默认值＋参数默认值**
 
@@ -110,8 +130,7 @@ config.log = config.log || {};
   options: {
     remove: config.options.remove = default.options.remove,
     enable: config.options.enable = default.options.enable,
-    instance: config.options.instance =
-    default.options.instance
+    instance: config.options.instance = default.options.instance
   } = {},
   log: {
     warn: config.log.warn = default.log.warn,
@@ -144,3 +163,4 @@ config.log = config.log || {};
   };
 }
 ```
+
